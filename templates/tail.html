@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script type="text/javascript"
+            src="https://code.jquery.com/jquery-3.4.0.min.js"></script>
+    <script type="text/javascript"
+            src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+
+    <script type="text/javascript" charset="utf-8">
+
+        $(document).ready(function () {
+            var child_num = 0;
+            var namespace = '/shell';
+            var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+            socket.on('tail_response', function (res) {
+                if (child_num < 40) {
+                    $('#terminal').append('<div>' + res.text + '</div>');
+                    child_num += 1
+                } else {
+                    // 先删后加
+                    $('#terminal div:first').remove();
+                    $('#terminal').append('<div>' + res.text + '</div>');
+                }
+                $(document).scrollTop($(document).height()); // 将滚动条滚到最下方
+                console.log(res.text);
+            });
+            socket.on('connect', function (data) {
+                socket.emit('open_tail', {'data': 'I\'m connected!'});
+            });
+
+            //socket.on('disconnect', function (data) {
+            //    socket.emit('close_tail', {'data': 'I\'m disconnected!'});
+            //});
+
+            $(window).bind('beforeunload', function () {
+                    socket.emit('close_tail', {'data': 'I\'m leave!'});
+
+                }
+            );
+
+
+        });
+
+        $(window).resize(function () {
+            var cliWidth = document.body.clientWidth;
+            var cliHeight = document.body.clientHeight;
+            var divWidth = cliWidth - 2;
+            var divHeight = cliHeight - 2;
+            $('#terminal').css("width", divWidth + "px");
+            $('#terminal').css("height", divHeight + "px");
+            $(document).scrollTop($(document).height()); // 将滚动条滚到最下方
+        })
+
+    </script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        .outer {
+        {#min-height: 980px;#} height: 100%;
+        }
+
+        #terminal {
+            height: 100%;
+        {#min-height: 980px;#} background-color: black;
+            color: white;
+            padding-left: 10px;
+        }
+
+        #terminal div {
+            background-color: black;
+            color: white;
+        }
+    </style>
+
+</head>
+
+<body>
+
+
+<div class="outer">
+
+    <div id="terminal">
+
+
+    </div>
+</div>
+
+
+</body>
+
+
+</html>
