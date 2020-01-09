@@ -11,6 +11,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
 socketio = SocketIO(app)
 
+# 和Vue-socketio配合使用时，使用下面的，避免跨域
+# socketio = SocketIO(app , cors_allowed_origins="*")
+
 close = False
 thread = None
 thread_lock = Lock()
