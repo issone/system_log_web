@@ -13,14 +13,14 @@
             var namespace = "/shell";
             var socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
             socket.on('connect', function (res) {
-                socket.emit('handle_top', {'data': 'I\'m connected!'});
+                socket.emit('handle_ps_aux', {'data': 'I\'m connected!'});
             });
 
-            socket.on('top_response', function (res) {
-                var top_info = res.text;
-                document.getElementById("terminal").innerHTML = top_info;
+            socket.on('ps_aux_response', function (res) {
+                var info = res.text;
+                document.getElementById("terminal").innerHTML = info;
                 setTimeout(function () {
-                    socket.emit("handle_top", {"data": "handle_top"});
+                    socket.emit("handle_ps_aux", {"data": "handle_ps_aux"});
                 }, 3000)
             });
         });
@@ -41,14 +41,15 @@
             text-align: right;
         }
 
-        table td,th {
+        table td, th {
             word-break: keep-all;
             white-space: nowrap;
         }
-         table tr td:last-child{
-            text-align: left;
-        }
 
+        table tr td:last-child {
+            text-align: left;
+            padding-left: 10px;
+        }
 
     </style>
 

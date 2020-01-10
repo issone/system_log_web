@@ -1,6 +1,7 @@
 # coding=utf-8
 import os
 import re
+from subprocess import PIPE, Popen
 from threading import Lock
 
 from flask import Flask, render_template
@@ -67,28 +68,63 @@ def get_top_info():
                                                                                              "").replace("\x1b[39;49m",
                                                                                                          "").replace(
         "\x1b[K", "").replace("\x1b[7m", "").replace("\x1b[?1l\x1b>\x1b[45;1H", "").replace("\x1b[?12l\x1b[?25h",
-                                                                                            "").replace("\x1b[1m", "")
-
+                                                                                            "").replace("\x1b[1m",
+                                                                                                        "").replace(
+        "\x1b[?1l\x1b>\x1b[47;1H", "")
+    # 再处理一次，末尾可能还没清理完全
+    top_output = re.sub('\x1b.*?\s', "", top_output)
     _html = ''
     for num, line in enumerate(top_output.split('\n')):
         if num >= 6:
             if num == 6:
-                new_line = "<table> <tr>"
+                new_line = "<table><tbody><tr>"
             else:
 
                 new_line = "<tr>"
             td_list = re.split(r" +", line)
-            if len(td_list) > 1:
+            if td_list:
+                first_td = td_list[0]  # 第一个td里当数字长度小于7位时为空，第12列及以后为COMMAND列，否则第11列及以后才是
 
-                for td in td_list:
-                    if td.strip():
-                        new_line += f"<td>{(8-len(td))*'&nbsp;'+td}</td>"
+                if len(first_td.strip()) < 7:
+                    end_num = 12
+                else:
+                    end_num = 11
+                for td_num, td in enumerate(td_list):
+                    # print(td_num, repr(td))
+
+                    if td_num < end_num:
+                        if td.strip():
+                            new_line += f"<td>{(8-len(td))*'&ensp;'+td}</td>"
+                    else:
+                        new_line += f"<td  style='text-align: left;padding-left: 10px'>{td}</td>"
 
             new_line += "</tr>"
         else:
-            new_line = '<div>' + line.replace(' ', "&nbsp;") + '</div>'
+            new_line = '<div>' + line.replace(' ', "&ensp;") + '</div>'
 
         _html += new_line
+    _html += '</tbody></table>'
+    return _html
+
+
+def get_ps_aux_info(n=40):
+    process = Popen(f"ps aux|head -n {n}", shell=True, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    output = process.stdout.read()
+    _html = '<table>'
+    for line in output.split('\n'):
+        if line:
+            td_list = re.split(r" +", line)
+            new_line = '<tr>'
+            for td_num, td in enumerate(td_list):
+                if td.strip():
+                    print(td_num, repr(td))
+                    if td_num < 10:
+                        new_line += f"<td>{(8-len(td))*'&ensp;'+td}</td>"
+                    else:  # 第10行以后是command
+                        new_line += f"<td  style='text-align: left;padding-left: 10px'>{td}</td>"
+
+            new_line += "</tr>"
+            _html += new_line
     _html += '</table>'
     return _html
 
@@ -106,6 +142,11 @@ def tail_html():
 @app.route('/top', methods=['GET'])
 def top_html():
     return render_template('top.html')
+
+
+@app.route('/ps_aux', methods=['GET'])
+def ps_aux_html():
+    return render_template('ps_aux.html')
 
 
 @socketio.on('connect', namespace="/shell")
@@ -149,6 +190,14 @@ def handle_top(message):
 
     top_info = get_top_info()
     socketio.emit('top_response', {'text': top_info}, namespace='/shell')
+
+
+@socketio.on('handle_ps_aux', namespace="/shell")
+def handle_ps_aux(message):
+    print('received handle_ps_aux message: ' + message.get('data', ''))
+
+    ps_aux_info = get_ps_aux_info()
+    socketio.emit('ps_aux_response', {'text': ps_aux_info}, namespace='/shell')
 
 
 def background_thread():
