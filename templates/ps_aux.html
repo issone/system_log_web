@@ -10,19 +10,26 @@
 
     <script type="text/javascript" charset="utf-8">
         $(document).ready(function () {
+            var _type ="ps";
             var namespace = "/shell";
             var socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
-            socket.on('connect', function (res) {
-                socket.emit('handle_ps_aux', {'data': 'I\'m connected!'});
+
+            socket.emit('client', {'_type': _type});
+
+             socket.on('response', function (res) {
+                 console.log(res)
+                if (res._type === _type) {
+                    var top_info = res.text;
+                    document.getElementById("terminal").innerHTML = top_info;
+                }
+
             });
 
-            socket.on('ps_aux_response', function (res) {
-                var info = res.text;
-                document.getElementById("terminal").innerHTML = info;
-                setTimeout(function () {
-                    socket.emit("handle_ps_aux", {"data": "handle_ps_aux"});
-                }, 3000)
-            });
+              $(window).bind('beforeunload', function () {    // 离开页面前关闭tail
+                    socket.emit('leave', {'_type': _type});
+
+                }
+            );
         });
     </script>
     <style type="text/css">

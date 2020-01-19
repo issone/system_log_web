@@ -11,10 +11,13 @@
     <script type="text/javascript" charset="utf-8">
 
         $(document).ready(function () {
+            var _type = 'tail';
             var child_num = 0;
             var namespace = '/shell';
             var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
-            socket.on('tail_response', function (res) {
+            socket.on('response', function (res) {
+                console.log(res._type,_type,res._type === _type);
+                if (res._type === _type) {
                 if (child_num < 40) {
                     $('#terminal').append('<div>' + res.text + '</div>');
                     child_num += 1
@@ -25,21 +28,15 @@
                 }
                 $(document).scrollTop($(document).height()); // 将滚动条滚到最下方
                 console.log(res.text);
-            });
-            socket.on('connect', function (res) {
-                socket.emit('open_tail', {'data': 'I\'m connected!'});
+                }
             });
 
-            //socket.on('disconnect', function (data) {
-            //    socket.emit('close_tail', {'data': 'I\'m disconnected!'});
-            //});
+            socket.emit('client', {'_type': _type});
 
             $(window).bind('beforeunload', function () {    // 离开页面前关闭tail
-                    socket.emit('close_tail', {'data': 'I\'m leave!'});
-
+                    socket.emit('leave', {'_type': _type});
                 }
             );
-
 
         });
 
