@@ -212,7 +212,7 @@ class TailCommand(Command):
                 tail_output = tail_pipe.readline()
                 if tail_output.strip():
                     self.send_response(tail_output)
-
+            tail_pipe.close()
             print('tail -f 关闭')
 
 
