@@ -36,9 +36,10 @@ class Command:
     def incr(self, num=1):
         with self.lock:
             self.client_num += num
-            if self.client_num < 0:
+            if self.client_num <= 0:
                 self.client_num = 0
                 self.close_thread = True
+                self.thread = None
 
     def send_response(self, text):
         socketio.emit(self.event_name, {'text': text, '_type': self.cmd_name}, namespace=self.namespace)
@@ -124,7 +125,7 @@ class TopCommand(Command):
         :param interval: 刷新间隔
         :return:
         '''
-        while self.client_num and not self.close_thread:
+        while not self.close_thread:
             top_info = self.top_n(html=True)
 
             self.send_response(top_info)
@@ -211,8 +212,8 @@ class TailCommand(Command):
                 tail_output = tail_pipe.readline()
                 if tail_output.strip():
                     self.send_response(tail_output)
-            tail_pipe.close()
-            print('离开tail,客户端还剩', self.client_num)
+
+            print('tail -f 关闭')
 
 
 class PsCommand(Command):
@@ -257,7 +258,7 @@ class PsCommand(Command):
         :param interval: 刷新间隔
         :return:
         '''
-        while self.client_num and not self.close_thread:
+        while self.close_thread:
             ps_aux_info = self.ps_aux(n=n, html=True)
 
             self.send_response(ps_aux_info)
